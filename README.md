@@ -18,7 +18,7 @@ It assumes a single master and has not been tested with more.
 
 ## Build flannel if using ipsec
 
-If you wish to use the flannel CNI plugin with its ipsec backend, you will have to build it locally
+Until [#1047](https://github.com/coreos/flannel/issues/1047) is fixed, if you wish to use the flannel CNI plugin with its ipsec backend, you will have to build it locally:
 ```
 git clone https://github.com/coreos/flannel
 cd flannel
