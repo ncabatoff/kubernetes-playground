@@ -1,0 +1,61 @@
+- name: initialize kube
+  shell: >
+       kubeadm reset --force &&
+       sysctl -p &&
+       kubeadm init --apiserver-advertise-address=10.0.0.10 --pod-network-cidr={{ overlay_network }}/{{ overlay_network_bits }}
+  args:
+    creates: /etc/kubeadm-join.sh
+  register: kubeadm_out
+
+- lineinfile:
+    path: /etc/kubeadm-join.sh
+    line: "{{kubeadm_out.stdout_lines[-1]}}"
+    create: yes
+  when: kubeadm_out.stdout.find("kubeadm join") != -1
+
+- service: name=kubelet state=started enabled=yes
+
+- name: setup kubeconfig for root
+  lineinfile:
+    path: /root/.bashrc
+    line: 'export KUBECONFIG=/etc/kubernetes/admin.conf'
+    create: yes
+
+- name: setup vagrant .kube directory
+  file: path=/home/vagrant/.kube state=directory owner=vagrant
+
+- name: setup kubeconfig for vagrant
+  copy: 
+    remote_src: yes
+    src: /etc/kubernetes/admin.conf
+    dest: /home/vagrant/.kube/config 
+    owner: vagrant
+
+- name: copy kubeconfig for local use
+  copy:
+    remote_src: yes
+    src: /etc/kubernetes/admin.conf
+    dest: /tmp/kubeconfig.local
+
+# Replace master IP with "kubernetes" because the certificate accepts that, not "localhost".
+# This unfortunately means that the user must modify their /etc/hosts as described in our README.
+- name: hack local kubeconfig
+  lineinfile:
+    path: /tmp/kubeconfig.local
+    regexp: '(\s*server: https://)10.0.0.10(:6443)'
+    line: '\1kubernetes:{{ host_kube_port }}'
+    backrefs: yes
+
+- name: fetch local kubeconfig
+  fetch:
+    src: /tmp/kubeconfig.local
+    dest: tmp/kubeconfig.local
+    flat: yes
+
+- name: start registry
+  docker_container:
+    name: master
+    image: registry:2
+    ports: 
+    - "5000:5000"
+    restart_policy: always

@@ -1,3 +1,0 @@
-- include_tasks: init.yml
-- include_tasks: kubectl.yml
-- include_tasks: weave.yml

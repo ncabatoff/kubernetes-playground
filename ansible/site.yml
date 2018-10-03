@@ -1,0 +1,39 @@
+- name: prepare
+  hosts: all
+  become: True
+  gather_facts: True
+  roles:
+    - { role: 'prepare', tags: 'prepare' }
+
+- name: master
+  hosts: masters
+  become: True
+  gather_facts: False
+  roles:
+    - { role: 'master', tags: 'master' }
+
+- name: nodes
+  hosts: all
+  become: True
+  gather_facts: False
+  vars:
+    master_hostname: "{{ groups['masters'][0] }}"
+  roles:
+    - { role: 'nodes', tags: 'nodes' }
+
+- name: save flannel image
+  hosts: localhost
+  become: False
+  gather_facts: False
+  tags: 
+    - postkube
+  tasks:
+    - name: save flannel docker image
+      command: docker save -o tmp/flannel.tar "{{ flannel_docker_image }}"
+
+- name: postkube
+  hosts: masters
+  become: False
+  gather_facts: False
+  roles:
+    - { role: 'postkube', tags: 'postkube' }

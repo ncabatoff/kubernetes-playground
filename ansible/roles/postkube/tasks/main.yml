@@ -1,0 +1,37 @@
+- name: setup aliases
+  blockinfile:
+    path: /home/vagrant/.bashrc
+    block: |
+      alias k='kubectl'
+      alias kgp='kubectl get nodes'
+      alias kgp='kubectl get pods'
+      alias kgpa='kubectl get pods --all-namespaces'
+
+- import_tasks: flannel.yml
+  when: cni_plugin == "flannel"
+
+- name: install weave net
+  shell: >
+    kubever=$(kubectl version | base64 | tr -d '\n') ;
+    curl --location "https://cloud.weave.works/k8s/net?k8s-version=$kubever" | kubectl apply -f -
+  when: cni_plugin == "weave"
+
+- name: download kubernetes-network-tester
+  get_url:
+    url: https://github.com/ncabatoff/kubernetes-network-tester/releases/download/v0.1.0/kubernetes-network-tester_0.1.0_linux_amd64.tar.gz
+    dest: /tmp/
+  register: get_tester
+  
+- name: extract kubernetes-network-tester
+  unarchive:
+    src: "{{ get_tester.dest }}"
+    dest: /tmp/
+    exclude: ['README.md', 'LICENSE']
+    remote_src: yes
+
+- name: run kubernetes-network-tester
+  shell: >
+    /tmp/kubernetes-network-tester 
+    -numhosts 3
+    -resolver $(kubectl get svc -n kube-system kube-dns -o jsonpath='{.spec.clusterIP}'):53
+    checksvc1 checksvc2 checksvc3

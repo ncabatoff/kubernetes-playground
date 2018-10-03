@@ -1,0 +1,11 @@
+- name: setup ip forwarding
+  sysctl: name=net.ipv4.ip_forward value=1 state=present reload=yes sysctl_set=yes
+
+- name: start docker
+  service: name=docker state=started enabled=yes
+
+- name: start ntp
+  service: name=ntp state=started enabled=yes
+
+- name: start kubelet
+  service: name=kubelet state=started enabled=yes

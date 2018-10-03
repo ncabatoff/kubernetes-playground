@@ -1,1 +1,0 @@
-ansible -mcommand -a "$*" all

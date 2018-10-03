@@ -1,0 +1,47 @@
+- name: check if apt-transport-https is installed
+  command: dpkg -s apt-transport-https 
+  register: apt_transport_https_installed
+  
+- name: install apt-transport-https
+  shell: apt-get -y update && apt-get install -y apt-transport-https
+  when: apt_transport_https_installed.rc != 0
+
+- name: setup kubernetes apt repo
+  apt_repository:
+    repo: 'deb http://apt.kubernetes.io/ kubernetes-xenial main'
+    state: present
+
+- name: install docker and ntp
+  apt: 
+    name: "{{ packages }}"
+    state: present 
+    allow_unauthenticated: yes
+  vars:
+    packages:
+    - ntp
+    - docker.io
+    - python-docker
+    
+# Install a local registry so that we can easily get docker images here without
+# depending on anything external.  We make it insecure for simplicity.
+# The task below enables that insecure option, for the master only (where the registry 
+# will run).  Do it as the first thing after installing docker so that the impact of
+# restarting docker is reduced (instead of later when we have containers running).
+- name: enable local insecure registry
+  template:
+    src: templates/docker-daemon.json.j2
+    dest: /etc/docker/daemon.json
+  vars:
+    registry_host: master
+  notify: reload docker
+
+- name: install kubernetes
+  apt:
+    name: "{{ packages }}"
+    state: present 
+    allow_unauthenticated: yes
+  vars:
+    packages:
+    - kubelet={{ k8s_pkg_version }}
+    - kubeadm={{ k8s_pkg_version }}
+    - kubectl={{ k8s_pkg_version }}

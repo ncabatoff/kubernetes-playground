@@ -1,0 +1,38 @@
+- name: copy flannel docker image
+  copy: src=tmp/flannel.tar dest=/tmp/flannel.tar
+  when: flannel_backend == "ipsec"
+
+- name: load flannel docker image
+  become: True
+  docker_image:
+    name: "{{ flannel_docker_image }}"
+    push: yes
+    load_path: /tmp/flannel.tar
+  when: flannel_backend == "ipsec"
+
+- name: create flannel yaml
+  template:
+    src: templates/flannel.yml.j2
+    dest: /tmp/flannel.yml
+  vars:
+    network: "{{ overlay_network }}/{{ overlay_network_bits }}"
+    backend_type: "{{ flannel_backend }}"
+    ipsec_psk: "{{ flannel_ipsec_psk }}"
+
+- name: install flannel
+  shell: kubectl apply -f /tmp/flannel.yml
+
+# This is necessary due to a bug(?) in flannel with ipsec, see https://github.com/coreos/flannel/issues/966
+# I haven't yet tried to make this use overlay_network and overlay_network_bits because I'm hoping this
+# goes away with an upstream fix, and I don't know a convenient way offhand to get the route netmask
+# from the CIDR notation.
+- name: setup /16 route
+  become: True
+  shell: >
+    while [ "$(ip route show 10.244.0.0/24)" = "" ]; do
+      sleep 1;
+    done;
+    if [ "$(ip route show 10.244.0.0/16)" = "" ]; then
+      route add -net 10.244.0.0 netmask 255.255.0.0 cni0
+    fi
+  when: flannel_backend == "ipsec"
