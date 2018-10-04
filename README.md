@@ -7,7 +7,7 @@ Prerequisites:
 - Vagrant 2.1.5
   - Also [vagrant-hostmanager](https://github.com/devopsgroup-io/vagrant-hostmanager) 1.8.9, installed with `vagrant plugin install vagrant-hostmanager`
 - Ansible 2.6.4
-- 8GB of free memory
+- 3GB of free memory
 
 It will probably work with the same major version of any of the above (e.g. any VirtualBox 5 version),
 but those are the versions it was tested with.

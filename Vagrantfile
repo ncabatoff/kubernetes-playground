@@ -15,9 +15,6 @@ flannel_docker_image = 'master:5000/coreos/flannel'
 # Versions
 k8s_pkg_version = '1.11.3-00'    # this is the dpkg version for http://apt.kubernetes.io/
 
-# Resource usage
-node_memory = 2000               # 2GB of memory per vm host
-
 # Change these if you need to run multiple clusters
 host_kube_port = 6444            # Port forward for Kubernetes API server
 host_prom_port = 31000           # Port forward for Prometheus
@@ -26,10 +23,10 @@ node_domain = 'ikube'            # domain name of vm hosts
 # You probably don't need to change anything below, but you can if you like.
 network_prefix  = '10.0.0.'  # ip prefix of vm hosts, remaining octet provided by :id attribute in nodes, below:
 nodes = [
-  { :hostname => 'master', :id => '10' },
-  { :hostname => 'node1',  :id => '11' },
-  { :hostname => 'node2',  :id => '12' },
-  { :hostname => 'node3',  :id => '13' },
+  { :hostname => 'master', :id => '10', :memory => 1500 },  # master needs 1.5GB
+  { :hostname => 'node1',  :id => '11', :memory => 500 },   # nodes need at least 500MB, adjust for workload
+  { :hostname => 'node2',  :id => '12', :memory => 500 },
+  { :hostname => 'node3',  :id => '13', :memory => 500 },
 ]
 
 # --------------------------------
@@ -64,7 +61,7 @@ Vagrant.configure("2") do |config|
         # Use virtualbox linked clones to reduce disk usage
         vb.linked_clone = true
         vb.name = node[:hostname]+"."+node_domain
-        vb.memory = node_memory
+        vb.memory = node[:memory]
         vb.cpus = 1
         vb.customize ['modifyvm', :id, '--natdnshostresolver1', 'on']
         vb.customize ['modifyvm', :id, '--natdnsproxy1', 'on']
