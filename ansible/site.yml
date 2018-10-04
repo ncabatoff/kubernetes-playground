@@ -30,6 +30,7 @@
   tasks:
     - name: save flannel docker image
       command: docker save -o tmp/flannel.tar "{{ flannel_docker_image }}"
+      when: flannel_backend == "ipsec" and flannel_docker_image is search("^master:5000/")
 
 - name: postkube
   hosts: masters

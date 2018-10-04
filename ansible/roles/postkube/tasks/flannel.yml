@@ -1,6 +1,6 @@
 - name: copy flannel docker image
   copy: src=tmp/flannel.tar dest=/tmp/flannel.tar
-  when: flannel_backend == "ipsec"
+  when: flannel_backend == "ipsec" and flannel_docker_image is search("^master:5000/")
 
 - name: load flannel docker image
   become: True
@@ -8,7 +8,7 @@
     name: "{{ flannel_docker_image }}"
     push: yes
     load_path: /tmp/flannel.tar
-  when: flannel_backend == "ipsec"
+  when: flannel_backend == "ipsec" and flannel_docker_image is search("^master:5000/")
 
 - name: create flannel yaml
   template:
